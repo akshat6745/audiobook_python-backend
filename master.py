@@ -9,7 +9,16 @@ import threading
 from flask import Flask, jsonify
 
 SCOPES = ["https://www.googleapis.com/auth/drive"]
-SERVICE_ACCOUNT_FILE = "./epubmontinor-35b26bd8d1a6.json"
+"""
+# TODO: make this a real thing
+SERVICE_ACCOUNT_FILE = os.getenv("SERVICE_ACCOUNT_FILE")
+if not SERVICE_ACCOUNT_FILE:
+    raise ValueError("Missing SERVICE_ACCOUNT_FILE environment variable")
+"""
+# SERVICE_ACCOUNT_FILE = "./epubmontinor-35b26bd8d1a6.json"
+SERVICE_ACCOUNT_FILE = os.getenv("SERVICE_ACCOUNT_FILE")
+if not SERVICE_ACCOUNT_FILE:
+    raise ValueError("Missing SERVICE_ACCOUNT_FILE environment variable")
 
 app = Flask(__name__)
 
