@@ -1,0 +1,3 @@
+ebooklib
+google-api-python-client
+bs4
