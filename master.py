@@ -3,54 +3,68 @@ from google.oauth2 import service_account
 from epub_parser import parse_epub
 import io
 from googleapiclient.http import MediaIoBaseDownload
+import os
+from concurrent.futures import ThreadPoolExecutor
+import threading
+from flask import Flask, jsonify
 
 SCOPES = ["https://www.googleapis.com/auth/drive"]
 SERVICE_ACCOUNT_FILE = "./epubmontinor-35b26bd8d1a6.json"
 
+app = Flask(__name__)
 
-def list_epubs():
-    creds = service_account.Credentials.from_service_account_file(
-        SERVICE_ACCOUNT_FILE, scopes=SCOPES
-    )
-    service = build("drive", "v3", credentials=creds)
-
-    results = (
-        service.files()
-        .list(
-            q="mimeType='application/epub+zip'",  # Filter only EPUB files
-            fields="files(id, name)",
-        )
-        .execute()
-    )
-
-    items = results.get("files", [])
-    if not items:
-        print("No EPUB files found.")
-        return []
-    print(items)
-    # Get the first EPUB file
-    first_epub = items[0]
-    file_id = first_epub["id"]
-    file_name = first_epub["name"]
-
-    print(f"Downloading EPUB: {file_name} (ID: {file_id})")
-
-    # Download the file
-    request = service.files().get_media(fileId=file_id)
-    file_path = f"./{file_name}"
+def download_epub(service, item):
+    """Download a single EPUB file if it doesn't already exist."""
+    file_path = f"./{item['name']}"
+    if os.path.exists(file_path):
+        return  # Skip if the file already exists
+    
+    request = service.files().get_media(fileId=item["id"])
     with open(file_path, "wb") as file:
         downloader = MediaIoBaseDownload(file, request)
         done = False
         while not done:
             _, done = downloader.next_chunk()
+    print(f"Downloaded: {item['name']}")
 
-    print(f"Downloaded: {file_path}")
+def download_epub_all(service, items):
+    """Download all EPUB files concurrently."""
+    with ThreadPoolExecutor() as executor:
+        executor.map(lambda item: download_epub(service, item), items)
 
-    # Parse the EPUB file and return chapters
-    chapters = parse_epub(file_path)
-    return chapters
+def get_epubs_list():
+    creds = service_account.Credentials.from_service_account_file(
+        SERVICE_ACCOUNT_FILE, scopes=SCOPES
+    )
+    service = build("drive", "v3", credentials=creds)
+    results = (
+        service.files()
+        .list(q="mimeType='application/epub+zip'", fields="files(id, name)")
+        .execute()
+    )
+    items = results.get("files", [])
+    
+    # Run download_epub_all in a separate thread to make it non-blocking
+    download_thread = threading.Thread(target=download_epub_all, args=(service, items))
+    download_thread.start()
+    
+    epubs_list = [{"id": item["id"], "name": item["name"]} for item in items]
+    
+    return epubs_list
 
+@app.route("/epubs", methods=["GET"])
+def list_epubs():
+    """API endpoint to get the list of EPUB files."""
+    return jsonify(get_epubs_list())
+
+@app.route("/epub/<filename>", methods=["GET"])
+def get_epub_chapters(filename):
+    """API endpoint to get chapters of a specific EPUB file."""
+    file_path = f"./{filename}"
+    if not os.path.exists(file_path):
+        return jsonify({"error": "File not found"}), 404
+    # print(parse_epub(file_path))
+    return jsonify(parse_epub(file_path))
 
 if __name__ == "__main__":
-    chapters_data = list_epubs()
-    print(chapters_data)  # Print or process the returned chapters
+    app.run(host="0.0.0.0", port=8000)
