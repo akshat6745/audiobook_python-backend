@@ -16,7 +16,7 @@ if not SERVICE_ACCOUNT_FILE:
     raise ValueError("Missing SERVICE_ACCOUNT_FILE environment variable")
 """
 # SERVICE_ACCOUNT_FILE = "./epubmontinor-35b26bd8d1a6.json"
-SERVICE_ACCOUNT_FILE = os.getenv("SERVICE_ACCOUNT_FILE")
+SERVICE_ACCOUNT_FILE = './etc/secrets/epubmontinor-35b26bd8d1a6.json'
 if not SERVICE_ACCOUNT_FILE:
     raise ValueError("Missing SERVICE_ACCOUNT_FILE environment variable")
 
