@@ -1,3 +1,9 @@
-ebooklib
+Flask
 google-api-python-client
-bs4
+google-auth
+google-auth-oauthlib
+google-auth-httplib2
+beautifulsoup4
+ebooklib
+gunicorn
+google-api-python-client
