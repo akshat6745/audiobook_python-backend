@@ -38,7 +38,7 @@ def download_epub(service, item):
 
 def download_epub_all(service, items):
     """Download all EPUB files concurrently."""
-    with ThreadPoolExecutor() as executor:
+    with ThreadPoolExecutor(max_workers=2) as executor:
         executor.map(lambda item: download_epub(service, item), items)
 
 def get_epubs_list():
